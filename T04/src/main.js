@@ -1,10 +1,15 @@
 import './style.css'
+import iconsSprite from './assets/icons.svg?raw'
 import heroImg from './assets/hero.png'
 import javascriptLogo from './assets/javascript.svg'
 import viteLogo from './assets/vite.svg'
 import { setupCounter } from './counter.js'
 
+// 图标 sprite 以 ?raw 内联进文档（而不是让 <use> 去跨文档加载 /icons.svg）。
+// 原因：file:// 页面跨文档取 SVG 会被浏览器拦掉，图标会 404；
+// 改成同文档引用 <use href="#id"> 后，双击打开 build/index.html 也能正常显示图标。
 document.querySelector('#app').innerHTML = `
+<div hidden aria-hidden="true">${iconsSprite}</div>
 <section id="center">
   <div class="hero">
     <img src="${heroImg}" class="base" width="170" height="179">
@@ -22,7 +27,7 @@ document.querySelector('#app').innerHTML = `
 
 <section id="next-steps">
   <div id="docs">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#documentation-icon"></use></svg>
+    <svg class="icon" role="presentation" aria-hidden="true"><use href="#documentation-icon"></use></svg>
     <h2>Documentation</h2>
     <p>Your questions, answered</p>
     <ul>
@@ -41,14 +46,14 @@ document.querySelector('#app').innerHTML = `
     </ul>
   </div>
   <div id="social">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#social-icon"></use></svg>
+    <svg class="icon" role="presentation" aria-hidden="true"><use href="#social-icon"></use></svg>
     <h2>Connect with us</h2>
     <p>Join the Vite community</p>
     <ul>
-      <li><a href="https://github.com/vitejs/vite" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#github-icon"></use></svg>GitHub</a></li>
-      <li><a href="https://chat.vite.dev/" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#discord-icon"></use></svg>Discord</a></li>
-      <li><a href="https://x.com/vite_js" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#x-icon"></use></svg>X.com</a></li>
-      <li><a href="https://bsky.app/profile/vite.dev" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#bluesky-icon"></use></svg>Bluesky</a></li>
+      <li><a href="https://github.com/vitejs/vite" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="#github-icon"></use></svg>GitHub</a></li>
+      <li><a href="https://chat.vite.dev/" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="#discord-icon"></use></svg>Discord</a></li>
+      <li><a href="https://x.com/vite_js" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="#x-icon"></use></svg>X.com</a></li>
+      <li><a href="https://bsky.app/profile/vite.dev" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="#bluesky-icon"></use></svg>Bluesky</a></li>
     </ul>
   </div>
 </section>
