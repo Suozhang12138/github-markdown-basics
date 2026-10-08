@@ -12,10 +12,16 @@
 
 1. `base: './'` —— 资源用相对路径，不再指向磁盘根目录；
 2. `rollupOptions.output.format: 'iife'` —— 输出普通脚本，不含 ES module 语法；
-3. 插件 `plainScriptForFileProtocol()` —— 去掉 Vite 固定写入的 `type="module"` 与 `crossorigin`。
+3. 插件 `plainScriptForFileProtocol()` —— 把 Vite 固定写入的 `type="module"` 换成 `defer`，并去掉 `crossorigin`。
 
-第 3 条不是美化：浏览器对 `file://` 页面上的 module 脚本按 CORS 处理（页面 origin 为 `null`），
-会直接拦掉导致白屏；去掉之后 `document.currentScript` 也可用，图片路径才能被
+第 3 条不是美化，而且这两个细节一个都不能省：
+
+- **必须去掉 `type="module"`**：浏览器对 `file://` 页面上的 module 脚本按 CORS 处理（页面 origin 为 `null`），会直接拦掉，JS 完全不执行；
+- **必须补上 `defer`**：`type="module"` 天生带 defer 语义（等文档解析完再执行）。如果只是简单删掉它，脚本就变成"读到就立刻执行"，那一刻 `<body>` 还没解析，`document.querySelector('#app')` 是 `null`，一赋值就抛 `TypeError`，页面照样白屏。
+
+第二种白屏特别容易误判：**CSS 已经注入、样式看起来生效了，只有 `#app` 是空的**，Console 里报的是脚本错误，很容易被当成样式问题去查。
+
+顺带一提：走普通脚本后 `document.currentScript` 也可用，图片路径才能被
 `new URL(资源名, document.currentScript.src)` 正确解析到 `build/assets/`。
 
 另外 `src/assets/icons.svg` 是被 `main.js` 用 `?raw` 内联进文档的（同文档 `<use href="#id">`）。

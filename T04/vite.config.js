@@ -1,14 +1,18 @@
 import { defineConfig } from 'vite'
 
 /**
- * 让产物真正能"双击打开"（file:// 协议）。
+ * 让产物真正能"双击打开"（file:// 协议）。这里有两个坑，缺一个都是白屏：
  *
- * 背景：浏览器对 file:// 页面上的 <script type="module"> 会按 CORS 处理
- * （页面 origin 为 null），结果就是白屏 + Console 报
- *   "Access to script at 'file:///...' from origin 'null' has been blocked by CORS policy"
- * 本工程是单页模板、没有动态 import，所以走普通脚本(iife)最省事；
- * 但 Vite 注入 script 标签时会固定写 type="module"，这里在最后阶段把它改回普通脚本。
- * 注意：iife 代码本来也不该按 module（严格模式）执行，去掉是语义正确的。
+ * 坑 1：浏览器对 file:// 页面上的 <script type="module"> 按 CORS 处理
+ *      （页面 origin 为 null），会直接拦掉，JS 根本不执行。
+ *      → 所以产物输出普通脚本(iife)，不用 ES module。
+ *
+ * 坑 2：普通脚本写在 <head> 里是"读到就立刻执行"的，那一刻 <body> 还没解析，
+ *      document.querySelector('#app') 得到 null，一赋值就抛 TypeError，页面照样空白。
+ *      而 module 脚本天生带 defer 语义（等文档解析完再执行）。
+ *      → 所以去掉 type="module" 的同时，必须把 defer 补回来。
+ *
+ * crossorigin 对 file:// 没有意义，一并去掉。
  */
 function plainScriptForFileProtocol() {
   return {
@@ -17,7 +21,7 @@ function plainScriptForFileProtocol() {
       order: 'post',
       handler(html) {
         return html
-          .replace(/\s+type="module"/g, '')
+          .replace(/\s+type="module"/g, ' defer')
           .replace(/\s+crossorigin/g, '')
       },
     },
