@@ -1,6 +1,6 @@
 # GitHub 与 Markdown 基础作业
 
-> 本仓库是「GitHub 与 Markdown 基础」作业的交付载体：T02–T05 四道题共用同一套目录结构，各自在自己的目录里产出。
+> 本仓库是「人机交互（可视分析）组」笔试的交付载体：T01–T05 各题在同一套目录结构里产出。
 
 ## 一、目录结构
 
@@ -9,36 +9,37 @@
 ```text
 github-markdown-basics/
 ├── T02/
-│   ├── <所选研究领域>.md
-│   └── reference/          # 参考文献原文 PDF
+│   ├── Multimodal Video Visualization.md   # 1.2 研究总结（所选领域）
+│   └── reference/                          # 12 篇参考文献原文 PDF
 ├── T03/
-│   ├── README.md
-│   └── design.png
+│   └── README.md                           # 1.3 设计方向：与 1.4 二选一，本人选了 1.4
 ├── T04/
-│   ├── README.md
-│   ├── src/                # 源码工程（含 .gitignore）
-│   └── build/              # 编译产物，可直接浏览
+│   ├── README.md                           # 1.4 实现思路与验证说明
+│   ├── src/                                # 源码工程（含 .gitignore）
+│   ├── build/                              # 编译产物，双击 index.html 即可浏览
+│   ├── preview.png                         # 渲染结果预览
+│   └── preview.provenance.json             # 预览图的来源锚点（产物 SHA-256）
 └── T05/
-    └── README.md
+    └── README.md                           # 1.5 AI 工具使用总结
 ```
 
 ## 二、各目录说明
 
-- **T02** —— 研究领域调研：正文为 `<所选研究领域>.md`，参考文献原文放在 `T02/reference/`。
-- **T03** —— 见 [T03/README.md](T03/README.md)。
-- **T04** —— 见 [T04/README.md](T04/README.md)：源码在 `T04/src/`，构建产物在 `T04/build/`，**可直接在浏览器打开**（不需要本地服务器）。
-- **T05** —— 见 [T05/README.md](T05/README.md)。
+- **T02** —— 研究总结（1.2）：所选领域为 **Multimodal Video Visualization**，正文 `T02/Multimodal Video Visualization.md`；12 篇原文 PDF 及其来源、版本说明在 `T02/reference/`。
+- **T03** —— 设计方向（1.3）：见 [T03/README.md](T03/README.md)。1.3 与 1.4 二选一，本人选择前端方向，故本题未提交设计图。
+- **T04** —— 可视化设计实现（1.4）：见 [T04/README.md](T04/README.md)。**零依赖**（只用 Node 内置模块，不需要 `npm install`），源码在 `T04/src/`，产物在 `T04/build/`，**双击即可在浏览器打开**（不需要本地服务器）。
+- **T05** —— AI 工具使用总结（1.5）：见 [T05/README.md](T05/README.md)。
 
 ## 三、完成状态
 
-| 目录 | 内容 | 状态 |
+| 目录 | 题目 | 状态 |
 | --- | --- | --- |
-| T02 | 研究领域调研 | ⬜ 待开始 |
-| T03 | 设计说明与设计图 | ⬜ 待开始 |
-| T04 | 源码工程与可离线打开的产物 | 🚧 进行中 |
-| T05 | 待补充 | ⬜ 待开始 |
+| T02 | 1.2 研究总结（≥5 篇文献） | ✅ 已完成（7 篇主文 + 5 篇延伸对照） |
+| T03 | 1.3 设计方向 | ⬜ 未做（与 1.4 二选一，理由见 T03/README.md） |
+| T04 | 1.4 可视化设计实现（增强雷达图） | ✅ 已完成 |
+| T05 | 1.5 AI 工具使用总结 | ✅ 已完成 |
 
-图例：✅ 已完成 · 🚧 进行中 · ⬜ 待开始
+图例：✅ 已完成 · ⬜ 未做
 
 ## 四、在本地使用
 
@@ -53,9 +54,17 @@ cd github-markdown-basics
 直接双击 T04/build/index.html
 ```
 
-## 五、本仓库用到的 Markdown 语法
+想重新构建或复核 T04，在 `T04/` 目录下执行（零依赖，只要有 Node）：
 
-本仓库刻意用到了下列语法，便于对照检查：
+```bash
+node src/build.mjs                                 # 构建 + 数值/产物自检
+node src/reverse-verify.mjs                        # 反向验证：防护拆掉后必须变红
+node src/check-render.mjs --allow-no-browser       # 渲染自检（浏览器层可选）
+```
+
+## 五、Markdown 语法
+
+本仓库用到的 Markdown 语法：
 
 1. 标题：本文件的 `#` 与 `##`
 2. 列表：本节的有序列表，以及第二节的无序列表

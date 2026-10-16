@@ -1,13 +1,985 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>T04</title>
-    <script defer src="./assets/index-CBus2QkT.js"></script>
-  </head>
-  <body>
-    <div id="app"></div>
-  </body>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>增强雷达图 · 50 家企业五个岗位报名情况</title>
+<style>
+:root {
+  --ink: #14181f;
+  --ink-soft: #5b6673;
+  --line: #dfe6ef;
+  --bg: #f5f7fa;
+  --card: #ffffff;
+  --mean: #7c3aed;
+  --axis-x: #e5484d;
+  --axis-y: #12a150;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 32px 24px 56px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  line-height: 1.6;
+}
+
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.page-head h1 {
+  margin: 0 0 6px;
+  font-size: 24px;
+  letter-spacing: 0.2px;
+}
+
+.page-head p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.note {
+  margin: 18px 0 0;
+  padding: 12px 16px;
+  border-left: 3px solid #f5a524;
+  background: #fff8e6;
+  border-radius: 0 8px 8px 0;
+  font-size: 13px;
+  color: #6b4e12;
+}
+
+.card {
+  margin-top: 22px;
+  padding: 20px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(20, 24, 31, 0.04), 0 12px 28px -22px rgba(20, 24, 31, 0.35);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.toolbar .spacer {
+  flex: 1;
+}
+
+.toolbar button {
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink-soft);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.toolbar button:hover {
+  border-color: #b9c6d6;
+  color: var(--ink);
+}
+
+.toolbar button.is-active {
+  border-color: var(--mean);
+  background: #f3ecff;
+  color: #5b21b6;
+  font-weight: 600;
+}
+
+.toolbar .hint {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* ---------- 图表 ---------- */
+
+#chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 82vh;
+}
+
+.sector-wedge {
+  fill: #f8fafd;
+  stroke: #e6edf5;
+  stroke-width: 1;
+}
+
+.grid-ring {
+  fill: none;
+  stroke: var(--line);
+  stroke-dasharray: 3 4;
+}
+
+.grid-ring-over {
+  fill: none;
+  stroke: rgba(120, 140, 165, 0.28);
+  stroke-dasharray: 2 5;
+}
+
+.sector-spoke {
+  stroke: #e2eaf3;
+  stroke-width: 1;
+}
+
+.tick-label {
+  font-size: 12px;
+  fill: #7d8b9c;
+  /* SVG 文本要给出 stroke 颜色才会画出描边；只写 paint-order 是没有效果的。
+     这层白边让刻度压住扇区分隔线时依然可读。 */
+  stroke: #fff;
+  stroke-width: 3.5;
+  stroke-linejoin: round;
+  paint-order: stroke fill;
+}
+
+.band {
+  stroke: none;
+}
+
+.band-0 {
+  stroke: #b9d3f7;
+  stroke-width: 0.8;
+}
+
+/* 深的两层分带叠在均值多边形上面，用 multiply 让底下的紫色轮廓透出来，
+   同时保留"越深越密"的读法 —— 这也是地平线图分带叠色的本意。
+   isolation 把混合限定在 SVG 内部，避免和卡片的白色背景发生交互。 */
+#chart {
+  isolation: isolate;
+}
+
+.layer-density-over .band {
+  mix-blend-mode: multiply;
+}
+
+/* 均值多边形：先铺一层白色描边，把它从密度图上「抬」起来。
+   只留薄薄一层 —— 太厚会变成一圈白色线框，反而压住了底下的分布。 */
+.mean-polygon-halo {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 4.5;
+  stroke-linejoin: round;
+  opacity: 0.55;
+}
+
+.mean-polygon {
+  fill: rgba(124, 58, 237, 0.13);
+  stroke: var(--mean);
+  stroke-width: 2.8;
+  stroke-linejoin: round;
+}
+
+.mean-dot {
+  fill: #fff;
+  stroke: var(--mean);
+  stroke-width: 2.6;
+}
+
+/* 轴标记画在最上层。不加白色外描边：五根轴在圆心附近本就汇聚，
+   加白边会糊成一圈白星芒，反而把红绿两色本身盖掉。 */
+.layer-axes,
+.layer-ticks {
+  pointer-events: none;
+}
+
+.axis-x {
+  stroke: #d92d20;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+}
+
+.axis-y {
+  stroke: #0b8a43;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-dasharray: 6 3;
+}
+
+.sector-label {
+  font-size: 15px;
+  font-weight: 600;
+  fill: var(--ink);
+}
+
+.sector-label-sub {
+  font-size: 12.5px;
+  font-weight: 400;
+  fill: var(--ink-soft);
+}
+
+/* 三种视图：对应题目图解的 子图1 / 子图2 / 子图3。
+   「仅雷达图」也要保留岗位标签，否则看不出哪根轴是哪个岗位。 */
+.view-radar .layer-density {
+  display: none;
+}
+
+.view-horizon .layer-radar {
+  display: none;
+}
+
+.view-horizon .layer-axes .axis-y,
+.view-radar .layer-axes .axis-y {
+  display: none;
+}
+
+/* ---------- 图例与表格 ---------- */
+
+.legend {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.legend li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.swatch {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  transform: translateY(2px);
+}
+
+.swatch-band {
+  background: linear-gradient(90deg, #dbeafe, #60a5fa, #1d4ed8);
+}
+
+.swatch-mean {
+  background: rgba(124, 58, 237, 0.2);
+  border: 2px solid var(--mean);
+}
+
+.swatch-x {
+  background: var(--axis-x);
+}
+
+.swatch-y {
+  background: var(--axis-y);
+}
+
+table.stats {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+table.stats caption {
+  caption-side: top;
+  text-align: left;
+  padding-bottom: 10px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+table.stats th,
+table.stats td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+}
+
+table.stats thead th {
+  color: var(--ink-soft);
+  font-weight: 500;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+table.stats th[scope='row'],
+table.stats thead th:first-child {
+  text-align: left;
+  white-space: nowrap;
+}
+
+table.stats td.strong {
+  font-weight: 700;
+  color: #5b21b6;
+}
+
+table.stats tbody tr:hover {
+  background: #fafcff;
+}
+
+.error {
+  color: #b42318;
+}
+
+@media (max-width: 640px) {
+  body {
+    padding: 20px 14px 40px;
+  }
+  table.stats th,
+  table.stats td {
+    padding: 6px 5px;
+    font-size: 11.5px;
+  }
+}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="page-head">
+    <h1>增强雷达图：五个岗位的报名人数分布</h1>
+    <p>普通雷达图展示各维度<strong>平均值</strong>，每个维度扇区内用<strong>地平线图</strong>展示该维度全部数据点的分布。</p>
+  </header>
+
+  <p class="note">
+    <strong>数据说明：</strong>本页数据为按题目字段格式生成的占位数据集（50 家企业 × 5 个岗位）。
+    替换 <code>T04/src/data/DataSet.csv</code> 后重新执行 <code>node src/build.mjs</code> 即可换成官方数据。
+  </p>
+
+  <section class="card">
+    <div class="toolbar">
+      <button data-view="combined" class="is-active">结合视图</button>
+      <button data-view="radar">仅雷达图</button>
+      <button data-view="horizon">仅分布（地平线图）</button>
+      <span class="spacer"></span>
+      <span class="hint">对应题目图解的 子图3 / 子图1 / 子图2</span>
+    </div>
+    <svg id="chart" role="img" aria-label="增强雷达图：雷达图叠加各地平线图"></svg>
+  </section>
+
+  <section class="card" id="stats"></section>
+
+  <section class="card">
+    <ul class="legend">
+      <li><span class="swatch swatch-band"></span>地平线图：该岗位全部企业报名人数的分布，颜色越深表示该区间越密集</li>
+      <li><span class="swatch swatch-mean"></span>雷达图：各岗位报名人数的平均值多边形</li>
+      <li><span class="swatch swatch-x"></span>红 = 地平线图 X 轴（数值轴，径向）　<span class="swatch swatch-y"></span>绿 = Y 轴（密度基线，切向）</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+window.__DATASET_CSV__ = "CompanyId,Software Engineer,Product Manager,HR Specialist,Data Scientist,Marketing Coordinator\naf24b51ec0b922db0648477ee1f23923,116,79,79,42,80\n36767ef62ae3d5c76e9cee9979b93778,78,40,23,42,36\n9f56e99852030d5b3d0b07ce0c2779c3,139,98,17,103,68\n80028e56ab419c43e18ffcc2a8ae4d8e,88,98,44,38,73\ne230523e66df25020f1db208d87a6e5e,166,110,25,37,54\n71df875f95b559dac3af8be381e36a2e,149,64,32,34,35\n58e216f214492d7c00826bbbc4d842b0,132,51,39,109,72\n43d6e62fe03e2c596781a7873f12c9a4,81,62,43,123,27\n9bd6a750512a037aa1a943b92eda2926,67,68,36,108,18\ne262f70b1a51eaa0b4c8d01c29f298d6,130,94,18,120,76\n9dd87d035a514d9004fac5d5386175dc,133,79,36,30,85\ne931c9d76e10240e4faf6a3fecff2b16,146,64,29,123,83\naba4873c06e91d68f74fd6ac40838564,146,79,16,43,21\nf91fd0f1a86cd9c95367cc92ead9d58e,200,85,16,50,49\n479981eb9496e65c2112a055e593ea8b,213,72,16,116,46\nfb8d0193e22747a2e68f82659b07150d,109,56,34,39,69\n483345006501203fbb1df4144a1b6768,65,83,24,131,57\n47468e5b7d3a1fcac41e918f419d63d5,105,70,36,104,83\n13e2a0f02206fe352225567692d5ac11,68,65,23,32,61\nd26435e9c4dbcbf16126fb29ad4a259e,123,71,27,62,22\nf05cea495a524fc6eca540250dc15b7c,151,43,27,127,61\n17f3706643440c73fd24ed313e915665,259,60,14,120,39\n6d41e61ec68441dfff5d0a11d8165107,107,63,28,101,73\nccf9ead1d1485b20eeeee7e5267bdcd7,115,61,17,127,38\nc84ff6708f1770deade4d24948e053b7,99,61,41,118,46\nd5559bdfa6b36c17a35d6de73997a5d7,87,61,24,23,18\n8bed118f1e6897eda63d632aa29aae01,84,48,17,113,81\n611aa5068c41cd43c775528d06841f12,75,32,25,132,75\n51b4c819d9742e99ab9f1b55b046a841,114,42,24,34,74\n9466eb968c5544633d1cd9a704d38768,161,91,28,109,26\n3864a1604f1ab96ad47e500f168cef0d,136,50,59,109,18\n4b27f26ff39a0f0a9a58b4a72ebadfd8,175,95,28,108,19\n768d2da95ffeaf9d28973c63ab7240d4,193,50,33,129,74\nd68b5f31260cd846349e6e30712e7e47,86,64,30,106,32\n9101191eda9bb87db0b055eb7ac0092b,109,80,21,97,84\n61fdbb62a0475ca579f420a983bd3a4b,80,77,28,46,86\n99d50d9d60ef38d0647eaaf44b9aae5b,257,66,27,102,16\ne8eb2272bac26e356628d93be102d674,116,70,57,145,49\n2e23ec68c35cdfa2b185a1805cdef15f,105,102,26,36,46\n5fe10f46cc6570fe8c82f83e5d08d416,146,83,33,26,46\nb66548a8dc20b0c248f730e147597490,202,57,29,47,51\n7a531ad6a9449775bde960228f50b6e2,142,88,87,109,73\n1644e42df82e7823889240b8d62f6d99,115,72,11,44,43\naf87c018d704f17728019b664f8f2779,95,91,37,36,94\n5e732f551978af22625f9e05e8690a48,174,117,16,42,95\ncae5117139dca087c1cf25f512ca3c88,55,58,11,86,46\n911f1fa94f7e02e83a0b798f70852057,163,111,28,89,35\n59dfddc8ab006429e24dfe14bd3725fe,278,74,52,135,16\n897ed0f9ce882c10ba76cc9228eb43c3,107,85,17,32,73\n00cda6a0da6e699a5dfc4c64a67b8c21,129,68,20,39,43\n";
+window.__T04_INLINE__ = true; // 告诉 app.js 的 autoBoot 不要自己启动，改由本文件末尾显式调 boot()
+(function () {
+/**
+ * T04 纯计算层 —— 不触碰 DOM，浏览器与 Node 都能跑。
+ *
+ * 这一层负责「把 CSV 变成绘图模型」：解析、统计、核密度估计、地平线图分带折叠。
+ * 渲染层（app.js）只消费这里吐出的模型，因此所有数值逻辑都可以在命令行里单独验证。
+ */
+
+/** 数据集的五个岗位维度，顺序即雷达图五个扇区的顺序。 */
+const JOB_COLUMNS = [
+  'Software Engineer',
+  'Product Manager',
+  'HR Specialist',
+  'Data Scientist',
+  'Marketing Coordinator',
+];
+
+/**
+ * 解析 CSV 文本。
+ * 只处理这道题的数据形态（无引号、无换行字段），避免为一个演示项目引入解析依赖。
+ * @param {string} text
+ * @returns {{header: string[], rows: {companyId: string, values: number[]}[]}}
+ */
+function parseCsv(text) {
+  const lines = String(text)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== '');
+  if (lines.length === 0) return { header: [], rows: [] };
+
+  const header = splitLine(lines[0]);
+  const valueStart = 1; // 第 0 列是 CompanyId
+  const rows = [];
+
+  for (let i = 1; i < lines.length; i += 1) {
+    const cells = splitLine(lines[i]);
+    if (cells.length < header.length) continue;
+    const values = [];
+    for (let c = valueStart; c < header.length; c += 1) {
+      values.push(Number(cells[c]));
+    }
+    rows.push({ companyId: cells[0], values });
+  }
+
+  return { header, rows };
+}
+
+function splitLine(line) {
+  return line.split(',').map((cell) => cell.trim());
+}
+
+/**
+ * 一组数值的基础统计量。
+ * @param {number[]} values
+ */
+function columnStats(values) {
+  const n = values.length;
+  if (n === 0) {
+    return { count: 0, min: 0, max: 0, mean: 0, median: 0, sd: 0, q1: 0, q3: 0 };
+  }
+  const sorted = [...values].sort((a, b) => a - b);
+  const sum = sorted.reduce((acc, v) => acc + v, 0);
+  const mean = sum / n;
+  const variance = sorted.reduce((acc, v) => acc + (v - mean) ** 2, 0) / n;
+  return {
+    count: n,
+    min: sorted[0],
+    max: sorted[n - 1],
+    mean,
+    median: quantile(sorted, 0.5),
+    sd: Math.sqrt(variance),
+    q1: quantile(sorted, 0.25),
+    q3: quantile(sorted, 0.75),
+  };
+}
+
+/** 线性插值分位数（sorted 必须已升序）。 */
+function quantile(sorted, p) {
+  if (sorted.length === 0) return 0;
+  if (sorted.length === 1) return sorted[0];
+  const pos = (sorted.length - 1) * p;
+  const lo = Math.floor(pos);
+  const hi = Math.ceil(pos);
+  if (lo === hi) return sorted[lo];
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+}
+
+/**
+ * Silverman 经验带宽：h = 0.9 · min(σ, IQR/1.34) · n^(-1/5)
+ * 取 σ 与 IQR/1.34 的较小值，是为了在双峰/长尾数据上不至于过度平滑。
+ */
+function silvermanBandwidth(values) {
+  const s = columnStats(values);
+  const n = s.count;
+  if (n < 2) return 1;
+  const iqr = s.q3 - s.q1;
+  const scale = Math.min(s.sd, iqr > 0 ? iqr / 1.34 : s.sd);
+  const h = 0.9 * (scale > 0 ? scale : 1) * n ** -0.2;
+  return h > 0 ? h : 1;
+}
+
+/**
+ * 高斯核密度估计。
+ *
+ * 为什么用 KDE 而不是直方图：地平线图要的是一条连续的「剖面」曲线，
+ * 直方图的柱子数量是人为参数、形状会跳变；KDE 平滑且只有一个带宽参数，
+ * 配合 Silverman 规则可以完全由数据决定，不需要手调。
+ *
+ * @param {number[]} values
+ * @param {{samples?: number, pad?: number}} [options]
+ * @returns {{lo: number, hi: number, bandwidth: number, points: {x: number, y: number}[], peak: number}}
+ */
+function kde(values, options = {}) {
+  const samples = options.samples ?? 73;
+  const pad = options.pad ?? 1.2;
+  const bandwidth = silvermanBandwidth(values);
+  const points = [];
+
+  if (values.length === 0) {
+    return { lo: 0, hi: 0, bandwidth, points, peak: 0 };
+  }
+
+  let dataMin = Infinity;
+  let dataMax = -Infinity;
+  for (const v of values) {
+    if (v < dataMin) dataMin = v;
+    if (v > dataMax) dataMax = v;
+  }
+
+  // 两端各留出一点余量，避免密度曲线在边界被硬切断。
+  const lo = Math.max(0, dataMin - pad * bandwidth);
+  const hi = dataMax + pad * bandwidth;
+  const span = hi - lo || 1;
+  const norm = 1 / (values.length * bandwidth * Math.sqrt(2 * Math.PI));
+
+  for (let i = 0; i < samples; i += 1) {
+    const x = lo + (span * i) / (samples - 1);
+    let sum = 0;
+    for (const v of values) {
+      const z = (x - v) / bandwidth;
+      sum += Math.exp(-0.5 * z * z);
+    }
+    points.push({ x, y: sum * norm });
+  }
+
+  let peak = 0;
+  for (const p of points) if (p.y > peak) peak = p.y;
+  return { lo, hi, bandwidth, points, peak };
+}
+
+/**
+ * 地平线图的分带折叠。
+ *
+ * 经典地平线图的做法：把数值域切成 bands 份，第 b 层只保留「超过 b/bands 的那部分」，
+ * 每层都从同一条基线起画、用递增的颜色叠上去。这样高度被压缩到 1/bands，
+ * 但层与层之间的颜色深浅仍然编码了原始量级。
+ *
+ * 本实现返回归一化后的每层厚度（0..1），几何映射交给渲染层。
+ *
+ * @param {number[]} normalized 归一化到 0..1 的剖面
+ * @param {number} bands 分带数量
+ * @returns {number[][]} layers[b][i] ∈ [0,1]
+ */
+function foldBands(normalized, bands) {
+  const step = 1 / bands;
+  const layers = [];
+  for (let b = 0; b < bands; b += 1) {
+    layers.push(
+      normalized.map((value) => {
+        const folded = Math.min(Math.max(value - b * step, 0), step);
+        return folded * bands;
+      }),
+    );
+  }
+  return layers;
+}
+
+/** 极坐标转直角坐标；deg 以 12 点方向为 -90°。 */
+function polar(cx, cy, r, deg) {
+  const rad = (deg * Math.PI) / 180;
+  return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
+}
+
+/**
+ * 向上取整到「好看」的刻度值。
+ *
+ * 刻度梯级取得比常见的 {1, 2, 5, 10} 更密：如果只用粗梯级，
+ * 例如把最大值 278 归到 500，会有将近一半的半径被浪费，
+ * 均值多边形被压在内圈、分布也被摊薄，可读性明显变差。
+ */
+const NICE_LADDER = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+
+function niceCeil(value) {
+  if (!(value > 0)) return 1;
+  const exp = Math.floor(Math.log10(value));
+  const base = 10 ** exp;
+  const frac = value / base;
+  let chosen = NICE_LADDER[NICE_LADDER.length - 1];
+  for (const candidate of NICE_LADDER) {
+    if (frac <= candidate + 1e-9) {
+      chosen = candidate;
+      break;
+    }
+  }
+  return chosen * base;
+}
+
+/**
+ * 把 CSV 文本整理成完整的绘图模型 —— 渲染层唯一需要的东西。
+ *
+ * @param {string} csvText
+ * @param {{columns?: string[], bands?: number, samples?: number}} [options]
+ */
+function buildModel(csvText, options = {}) {
+  const columns = options.columns ?? JOB_COLUMNS;
+  const bands = options.bands ?? 3;
+  const samples = options.samples ?? 73;
+
+  const { header, rows } = parseCsv(csvText);
+  // 表头里可能有多余列；只认我们关心的五个维度（按 header 出现顺序对齐）。
+  const names = header.length > 1 ? header.slice(1) : columns;
+
+  const domains = names.map((name, index) => {
+    const values = rows.map((row) => row.values[index]).filter((v) => Number.isFinite(v));
+    const stats = columnStats(values);
+    const density = kde(values, { samples });
+    return { key: name, label: name, values, stats, density };
+  });
+
+  let valueMax = 0;
+  let densityPeak = 0;
+  for (const d of domains) {
+    if (d.stats.max > valueMax) valueMax = d.stats.max;
+    if (d.density.peak > densityPeak) densityPeak = d.density.peak;
+  }
+
+  // 归一化后的分带厚度：颜色深浅在不同扇区之间才可比较。
+  for (const d of domains) {
+    const normalized = d.density.points.map((p) => (densityPeak > 0 ? p.y / densityPeak : 0));
+    d.layers = foldBands(normalized, bands);
+  }
+
+  return {
+    rows,
+    columns: names,
+    domains,
+    bands,
+    valueMax: niceCeil(valueMax),
+    densityPeak,
+  };
+}
+
+/**
+ * T04 渲染层 —— 把 core.js 产出的绘图模型画成 SVG。
+ *
+ * 布局决策（详见 ../README.md）：
+ *   半径 = 数值轴（与雷达图共享同一套刻度），角度 = 密度轴。
+ *   这样「平均值多边形」和「分布」落在同一个数值轴上，两张图才是真正叠合的，
+ *   而不是各画各的、只是放进同一个扇区。
+ *
+ * 图层顺序（从下到上）：扇区底 → 网格 → 密度分带(淡) → 均值多边形 → 网格(淡) → 密度分带(深)
+ *   → 轴标记 → 刻度 → 标签。
+ *
+ * 为什么密度分带要**分两层**夹住均值多边形：
+ *   地平线图的颜色深浅本身就是它的信息载体，均值多边形如果整个盖在它上面，
+ *   多边形内部的分布就被糊掉了（第一版就是这样，五个扇区的分带几乎看不见）。
+ *   把最浅的一层压在下面、深的两层用 multiply 叠在上面，均值多边形的轮廓仍然连续可读，
+ *   而分布最深的部分又不会被紫色填充吃掉。这是渲染出来对比后才定的顺序。
+ *
+ * 轴标记必须画在最上层：密度以角平分线为轴对称铺开，必然盖住画在角平分线上的红轴。
+ */
+
+const SIZE = 940;
+const CX = SIZE / 2;
+const CY = SIZE / 2;
+const R = 330;
+const R0 = 0.1 * R; // 数值 0 对应的半径
+const RM = 0.88 * R; // 数值上界对应的半径
+const MAX_HALF = 25; // 密度最大时向两侧张开的半角（度）；扇区半角为 36°
+const LABEL_GAP = 26;
+
+/**
+ * 视图窗口：正方形画布 [0,SIZE]²，但上下各裁掉一段空白。
+ * 图的真实纵向范围约为 CY±(RM+LABEL_GAP+标签高) ≈ 200..740，
+ * 不裁的话上下各有约 200px 纯空白，卡片被撑得很高。
+ */
+const VIEW_TOP = 90;
+const VIEW_H = 760;
+
+/**
+ * 地平线图三层分带的配色：由浅到深，越深代表该处数据越密集。
+ * 用单色系的蓝——地平线图靠"同一色相的深浅"编码量级，混入第二色相会破坏这个读法。
+ */
+const BAND_COLORS = ['#e8f0fe', '#93b4f5', '#2b4fc8'];
+
+/**
+ * 分带分层归属：最浅一层画在均值多边形下面，深的两层画在上面。
+ * 见文件头对图层顺序的说明。
+ */
+const BAND_LAYER = ['below', 'above', 'above'];
+
+const format = (value, digits = 1) => (Number.isFinite(value) ? value.toFixed(digits) : '—');
+const f = (n) => n.toFixed(2);
+
+function sectorAngle(index, total) {
+  return -90 + (360 / total) * index;
+}
+
+function valueToRadius(value, valueMax) {
+  const clamped = Math.min(Math.max(value, 0), valueMax);
+  return R0 + (clamped / valueMax) * (RM - R0);
+}
+
+/** 扇区楔形路径。 */
+function wedgePath(thetaC, halfAngle, radius) {
+  const [x0, y0] = polar(CX, CY, radius, thetaC - halfAngle);
+  const [x1, y1] = polar(CX, CY, radius, thetaC + halfAngle);
+  return `M ${CX} ${CY} L ${f(x0)} ${f(y0)} A ${radius} ${radius} 0 0 1 ${f(x1)} ${f(y1)} Z`;
+}
+
+/**
+ * 一个分带层的「叶片」路径。
+ * 沿数值轴采样，每个采样点按该层的折叠厚度向两侧张开 ±φ。
+ */
+function ribbonPath(domain, layer, thetaC, valueMax) {
+  const points = domain.density.points;
+  const left = [];
+  const right = [];
+
+  for (let k = 0; k < points.length; k += 1) {
+    const radius = valueToRadius(points[k].x, valueMax);
+    const phi = layer[k] * MAX_HALF;
+    left.push(polar(CX, CY, radius, thetaC - phi));
+    right.push(polar(CX, CY, radius, thetaC + phi));
+  }
+
+  const parts = [`M ${f(left[0][0])} ${f(left[0][1])}`];
+  for (let k = 1; k < left.length; k += 1) parts.push(`L ${f(left[k][0])} ${f(left[k][1])}`);
+  for (let k = right.length - 1; k >= 0; k -= 1) parts.push(`L ${f(right[k][0])} ${f(right[k][1])}`);
+  parts.push('Z');
+  return parts.join(' ');
+}
+
+function ringPaths(model, className) {
+  const ticks = [0.25, 0.5, 0.75, 1];
+  return ticks
+    .map((t) => {
+      const radius = valueToRadius(model.valueMax * t, model.valueMax);
+      return `<circle class="${className}" cx="${CX}" cy="${CY}" r="${f(radius)}" />`;
+    })
+    .join('');
+}
+
+/** 底层：扇区底 + 扇区分隔线 + 网格圈。 */
+function renderGrid(model) {
+  const total = model.domains.length;
+  const wedges = model.domains
+    .map((_, i) => `<path class="sector-wedge" d="${wedgePath(sectorAngle(i, total), 180 / total, RM)}" />`)
+    .join('');
+
+  const spokes = Array.from({ length: total }, (_, i) => {
+    const [x, y] = polar(CX, CY, RM, sectorAngle(i, total) + 180 / total);
+    return `<line class="sector-spoke" x1="${CX}" y1="${CY}" x2="${f(x)}" y2="${f(y)}" />`;
+  }).join('');
+
+  return `<g class="layer-base">${wedges}${spokes}${ringPaths(model, 'grid-ring')}</g>`;
+}
+
+/**
+ * 每个扇区里的地平线图。
+ * 返回两组：`below` 画在均值多边形下面，`above` 画在它上面（见 BAND_LAYER）。
+ */
+function renderDensity(model) {
+  const total = model.domains.length;
+  const below = [];
+  const above = [];
+
+  model.domains.forEach((domain, i) => {
+    const theta = sectorAngle(i, total);
+    const bandPaths = [[], []];
+
+    domain.layers.forEach((layer, b) => {
+      const d = ribbonPath(domain, layer, theta, model.valueMax);
+      const color = BAND_COLORS[b] ?? BAND_COLORS[BAND_COLORS.length - 1];
+      const target = BAND_LAYER[b] === 'above' ? 1 : 0;
+      bandPaths[target].push(`<path class="band band-${b}" d="${d}" fill="${color}" />`);
+    });
+
+    for (const [slot, paths] of bandPaths.entries()) {
+      if (paths.length === 0) continue;
+      const tip = `<title>${domain.label}：${domain.stats.count} 家企业，报名人数 ${Math.round(
+        domain.stats.min,
+      )}–${Math.round(domain.stats.max)}，均值 ${format(domain.stats.mean)}</title>`;
+      (slot === 1 ? above : below).push(
+        `<g class="sector" data-key="${domain.key}">${tip}<g class="layer-bands">${paths.join('')}</g></g>`,
+      );
+    }
+  });
+
+  return {
+    below: `<g class="layer-density">${below.join('')}</g>`,
+    above: `<g class="layer-density-over">${above.join('')}</g>`,
+  };
+}
+
+/** 均值多边形（普通雷达图）。 */
+function renderRadar(model) {
+  const total = model.domains.length;
+  const vertices = model.domains.map((domain, i) =>
+    polar(CX, CY, valueToRadius(domain.stats.mean, model.valueMax), sectorAngle(i, total)),
+  );
+  const polygon = vertices.map(([x, y]) => `${f(x)},${f(y)}`).join(' ');
+
+  const dots = vertices
+    .map(
+      ([x, y], i) =>
+        `<circle class="mean-dot" cx="${f(x)}" cy="${f(y)}" r="5.5"><title>${
+          model.domains[i].label
+        } 均值 ${format(model.domains[i].stats.mean)}</title></circle>`,
+    )
+    .join('');
+
+  return `<g class="layer-radar"><polygon class="mean-polygon-halo" points="${polygon}" /><polygon class="mean-polygon" points="${polygon}" />${dots}</g>`;
+}
+
+/**
+ * 轴标记：红 = 地平线图 X 轴（数值轴，径向），绿 = Y 轴（密度基线，切向）。
+ * 画在最上层，不再加白色外描边 —— 白边会把五根轴糊成一圈白星芒，反而盖住红绿本身。
+ */
+function renderAxes(model) {
+  const total = model.domains.length;
+  return `<g class="layer-axes">${model.domains
+    .map((domain, i) => {
+      const theta = sectorAngle(i, total);
+      const rLo = valueToRadius(domain.density.lo, model.valueMax);
+      const rHi = valueToRadius(domain.density.hi, model.valueMax);
+
+      const [ax0, ay0] = polar(CX, CY, rLo, theta);
+      const [ax1, ay1] = polar(CX, CY, rHi, theta);
+      const [gx0, gy0] = polar(CX, CY, rLo, theta - MAX_HALF);
+      const [gx1, gy1] = polar(CX, CY, rLo, theta + MAX_HALF);
+
+      return `<g class="axes">
+        <line class="axis-x" x1="${f(ax0)}" y1="${f(ay0)}" x2="${f(ax1)}" y2="${f(ay1)}" />
+        <line class="axis-y" x1="${f(gx0)}" y1="${f(gy0)}" x2="${f(gx1)}" y2="${f(gy1)}" />
+      </g>`;
+    })
+    .join('')}</g>`;
+}
+
+/**
+ * 刻度标签沿 6 点方向（扇区分隔线上）排布。
+ * 这条线上任何扇区的密度叶片都不会覆盖，比放在 12 点方向干净得多。
+ */
+function renderTicks(model) {
+  // 0 也要标出来：红色数值轴是从圆心开始量的，缺了 0 就没有起始参照。
+  const ticks = [0, 0.25, 0.5, 0.75, 1];
+  return `<g class="layer-ticks">${ticks
+    .map((t) => {
+      const radius = valueToRadius(model.valueMax * t, model.valueMax);
+      const [x, y] = polar(CX, CY, radius, 90);
+      const anchor = t === 0 ? 'end' : 'start';
+      const dx = t === 0 ? -9 : 9;
+      return `<text class="tick-label" x="${f(x + dx)}" y="${f(y + 4)}" text-anchor="${anchor}">${Math.round(
+        model.valueMax * t,
+      )}</text>`;
+    })
+    .join('')}</g>`;
+}
+
+function renderLabels(model) {
+  const total = model.domains.length;
+  return `<g class="layer-labels">${model.domains
+    .map((domain, i) => {
+      const theta = sectorAngle(i, total);
+      const [x, y] = polar(CX, CY, RM + LABEL_GAP, theta);
+      const anchor = Math.abs(Math.cos((theta * Math.PI) / 180)) < 0.2 ? 'middle' : x > CX ? 'start' : 'end';
+      return `<text class="sector-label" x="${f(x)}" y="${f(y)}" text-anchor="${anchor}">
+        <tspan x="${f(x)}" dy="0">${domain.label}</tspan>
+        <tspan class="sector-label-sub" x="${f(x)}" dy="18">均值 ${format(domain.stats.mean)}</tspan>
+      </text>`;
+    })
+    .join('')}</g>`;
+}
+
+function renderStats(model) {
+  const rows = model.domains
+    .map(
+      (d) => `<tr>
+        <th scope="row">${d.label}</th>
+        <td>${d.stats.count}</td>
+        <td>${Math.round(d.stats.min)}</td>
+        <td>${d.stats.q1.toFixed(0)}</td>
+        <td>${format(d.stats.median)}</td>
+        <td class="strong">${format(d.stats.mean)}</td>
+        <td>${d.stats.q3.toFixed(0)}</td>
+        <td>${Math.round(d.stats.max)}</td>
+        <td>${format(d.stats.sd)}</td>
+      </tr>`,
+    )
+    .join('');
+
+  return `
+    <table class="stats">
+      <caption>各维度统计量（样本 ${model.rows.length} 家企业）</caption>
+      <thead>
+        <tr><th>岗位</th><th>n</th><th>min</th><th>Q1</th><th>中位数</th><th>均值</th><th>Q3</th><th>max</th><th>标准差</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+/**
+ * 渲染整套可视化。
+ * @param {{svg: SVGSVGElement, table: HTMLElement}} targets
+ * @param {ReturnType<typeof buildModel>} model
+ */
+function renderAll(targets, model) {
+  targets.svg.setAttribute('viewBox', `0 ${VIEW_TOP} ${SIZE} ${VIEW_H}`);
+  targets.svg.classList.add('view-combined');
+  const density = renderDensity(model);
+  targets.svg.innerHTML = [
+    renderGrid(model),
+    density.below,
+    renderRadar(model),
+    `<g class="layer-grid-over">${ringPaths(model, 'grid-ring-over')}</g>`,
+    density.above,
+    renderAxes(model),
+    renderTicks(model),
+    renderLabels(model),
+  ].join('');
+  targets.table.innerHTML = renderStats(model);
+}
+
+const VIEW_CLASSES = ['view-combined', 'view-radar', 'view-horizon'];
+
+/** 切换视图（对应题目图解的 子图1 / 子图2 / 子图3）。 */
+function applyView(svg, view) {
+  svg.classList.remove(...VIEW_CLASSES);
+  svg.classList.add(`view-${view}`);
+}
+
+function bindViewSwitch(svg) {
+  const buttons = Array.from(document.querySelectorAll('[data-view]'));
+  buttons.forEach((button) => {
+    button.addEventListener('click', () => {
+      applyView(svg, button.getAttribute('data-view'));
+      buttons.forEach((b) => b.classList.toggle('is-active', b === button));
+    });
+  });
+}
+
+/**
+ * 渲染入口。
+ *
+ * 导出它是为了被构建产物显式调用 —— 内联成普通脚本后，模块顶层的
+ * `if (typeof document !== 'undefined')` 自动启动逻辑会被剥掉，
+ * 构建脚本末尾必须自己调一次，否则页面只剩静态骨架、视图切换按钮全是死的。
+ */
+function boot() {
+  const csv = typeof window !== 'undefined' ? window.__DATASET_CSV__ : undefined;
+  const svg = document.querySelector('#chart');
+  const table = document.querySelector('#stats');
+  if (!svg || !table) return;
+
+  if (!csv) {
+    table.innerHTML = '<p class="error">未找到数据：请通过 T04/src/build.mjs 构建后再打开。</p>';
+    return;
+  }
+
+  const model = buildModel(csv);
+  // 暴露绘图模型：给渲染自检（src/check-render.mjs）核对几何用，
+  // 这样自检比对的是"脚本自己算出来的统计量"，而不是它在旁边另算一份。
+  window.__T04_MODEL__ = model;
+  renderAll({ svg, table }, model);
+  bindViewSwitch(svg);
+}
+
+/**
+ * 自动启动：只在**模块方式**（src/index.html，需要 http 环境）下生效。
+ *
+ * 构建产物把本文件内联成普通脚本，此时启动由 build.mjs 显式调用 boot()，
+ * 因此那一边会在窗口上立一个 `__T04_INLINE__` 标记来跳过这里 ——
+ * 否则 boot() 会被执行两次，视图切换按钮会绑上两组监听器。
+ */
+function autoBoot() {
+  if (typeof document === 'undefined') return;
+  if (typeof window !== 'undefined' && window.__T04_INLINE__) return;
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+}
+
+autoBoot();
+
+window.__T04_BOOT__ = boot;
+})();
+window.__T04_BOOT__();
+</script>
+</body>
 </html>

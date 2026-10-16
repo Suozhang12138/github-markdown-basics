@@ -1,0 +1,15 @@
+# 换行统一为 LF（仓库内外一致）
+#
+# 为什么需要这份文件：T04/preview.provenance.json 用 build/index.html 的 SHA-256
+# 锚定预览图的来源。若 clone 时换行被改写（Windows 上 core.autocrlf=true 的默认行为），
+# 产物字节数就会变化，该哈希校验随之失败 —— 于是"同一份产物"在不同机器上不再等价。
+* text=auto eol=lf
+
+# 二进制文件不做任何换行转换
+*.pdf  binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.ico  binary
+*.woff binary
+*.woff2 binary

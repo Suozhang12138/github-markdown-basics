@@ -1,0 +1,335 @@
+:root {
+  --ink: #14181f;
+  --ink-soft: #5b6673;
+  --line: #dfe6ef;
+  --bg: #f5f7fa;
+  --card: #ffffff;
+  --mean: #7c3aed;
+  --axis-x: #e5484d;
+  --axis-y: #12a150;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 32px 24px 56px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  line-height: 1.6;
+}
+
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.page-head h1 {
+  margin: 0 0 6px;
+  font-size: 24px;
+  letter-spacing: 0.2px;
+}
+
+.page-head p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.note {
+  margin: 18px 0 0;
+  padding: 12px 16px;
+  border-left: 3px solid #f5a524;
+  background: #fff8e6;
+  border-radius: 0 8px 8px 0;
+  font-size: 13px;
+  color: #6b4e12;
+}
+
+.card {
+  margin-top: 22px;
+  padding: 20px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(20, 24, 31, 0.04), 0 12px 28px -22px rgba(20, 24, 31, 0.35);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.toolbar .spacer {
+  flex: 1;
+}
+
+.toolbar button {
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink-soft);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.toolbar button:hover {
+  border-color: #b9c6d6;
+  color: var(--ink);
+}
+
+.toolbar button.is-active {
+  border-color: var(--mean);
+  background: #f3ecff;
+  color: #5b21b6;
+  font-weight: 600;
+}
+
+.toolbar .hint {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* ---------- 图表 ---------- */
+
+#chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 82vh;
+}
+
+.sector-wedge {
+  fill: #f8fafd;
+  stroke: #e6edf5;
+  stroke-width: 1;
+}
+
+.grid-ring {
+  fill: none;
+  stroke: var(--line);
+  stroke-dasharray: 3 4;
+}
+
+.grid-ring-over {
+  fill: none;
+  stroke: rgba(120, 140, 165, 0.28);
+  stroke-dasharray: 2 5;
+}
+
+.sector-spoke {
+  stroke: #e2eaf3;
+  stroke-width: 1;
+}
+
+.tick-label {
+  font-size: 12px;
+  fill: #7d8b9c;
+  /* SVG 文本要给出 stroke 颜色才会画出描边；只写 paint-order 是没有效果的。
+     这层白边让刻度压住扇区分隔线时依然可读。 */
+  stroke: #fff;
+  stroke-width: 3.5;
+  stroke-linejoin: round;
+  paint-order: stroke fill;
+}
+
+.band {
+  stroke: none;
+}
+
+.band-0 {
+  stroke: #b9d3f7;
+  stroke-width: 0.8;
+}
+
+/* 深的两层分带叠在均值多边形上面，用 multiply 让底下的紫色轮廓透出来，
+   同时保留"越深越密"的读法 —— 这也是地平线图分带叠色的本意。
+   isolation 把混合限定在 SVG 内部，避免和卡片的白色背景发生交互。 */
+#chart {
+  isolation: isolate;
+}
+
+.layer-density-over .band {
+  mix-blend-mode: multiply;
+}
+
+/* 均值多边形：先铺一层白色描边，把它从密度图上「抬」起来。
+   只留薄薄一层 —— 太厚会变成一圈白色线框，反而压住了底下的分布。 */
+.mean-polygon-halo {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 4.5;
+  stroke-linejoin: round;
+  opacity: 0.55;
+}
+
+.mean-polygon {
+  fill: rgba(124, 58, 237, 0.13);
+  stroke: var(--mean);
+  stroke-width: 2.8;
+  stroke-linejoin: round;
+}
+
+.mean-dot {
+  fill: #fff;
+  stroke: var(--mean);
+  stroke-width: 2.6;
+}
+
+/* 轴标记画在最上层。不加白色外描边：五根轴在圆心附近本就汇聚，
+   加白边会糊成一圈白星芒，反而把红绿两色本身盖掉。 */
+.layer-axes,
+.layer-ticks {
+  pointer-events: none;
+}
+
+.axis-x {
+  stroke: #d92d20;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+}
+
+.axis-y {
+  stroke: #0b8a43;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-dasharray: 6 3;
+}
+
+.sector-label {
+  font-size: 15px;
+  font-weight: 600;
+  fill: var(--ink);
+}
+
+.sector-label-sub {
+  font-size: 12.5px;
+  font-weight: 400;
+  fill: var(--ink-soft);
+}
+
+/* 三种视图：对应题目图解的 子图1 / 子图2 / 子图3。
+   「仅雷达图」也要保留岗位标签，否则看不出哪根轴是哪个岗位。 */
+.view-radar .layer-density {
+  display: none;
+}
+
+.view-horizon .layer-radar {
+  display: none;
+}
+
+.view-horizon .layer-axes .axis-y,
+.view-radar .layer-axes .axis-y {
+  display: none;
+}
+
+/* ---------- 图例与表格 ---------- */
+
+.legend {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.legend li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.swatch {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  transform: translateY(2px);
+}
+
+.swatch-band {
+  background: linear-gradient(90deg, #dbeafe, #60a5fa, #1d4ed8);
+}
+
+.swatch-mean {
+  background: rgba(124, 58, 237, 0.2);
+  border: 2px solid var(--mean);
+}
+
+.swatch-x {
+  background: var(--axis-x);
+}
+
+.swatch-y {
+  background: var(--axis-y);
+}
+
+table.stats {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+table.stats caption {
+  caption-side: top;
+  text-align: left;
+  padding-bottom: 10px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+table.stats th,
+table.stats td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+}
+
+table.stats thead th {
+  color: var(--ink-soft);
+  font-weight: 500;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+table.stats th[scope='row'],
+table.stats thead th:first-child {
+  text-align: left;
+  white-space: nowrap;
+}
+
+table.stats td.strong {
+  font-weight: 700;
+  color: #5b21b6;
+}
+
+table.stats tbody tr:hover {
+  background: #fafcff;
+}
+
+.error {
+  color: #b42318;
+}
+
+@media (max-width: 640px) {
+  body {
+    padding: 20px 14px 40px;
+  }
+  table.stats th,
+  table.stats td {
+    padding: 6px 5px;
+    font-size: 11.5px;
+  }
+}

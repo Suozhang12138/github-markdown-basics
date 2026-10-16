@@ -1,0 +1,11 @@
+{
+  "artifact": "build/index.html",
+  "artifactSha256": "95097AD78C472D97E7D703A537259FCFADDC236CE59AC1B867192A22632AC9DE",
+  "artifactBytes": 31516,
+  "preview": "preview.png",
+  "previewBytes": 153475,
+  "previewWidth": 1000,
+  "previewHeight": 1500,
+  "renderedBy": "Edge headless (--headless=new --screenshot, window 1000x1500)",
+  "note": "Records which build/index.html this preview.png was rendered from. The build is deterministic, so artifactSha256 is the anchor instead of mtime. If the artifact content changes, the hash stops matching and check-render.mjs reports it."
+}

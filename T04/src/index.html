@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>增强雷达图 · 开发页</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="page-head">
+        <h1>增强雷达图 · 开发页</h1>
+        <p>此页按 ES Module 直接引用 src/ 下的源码，需要通过 http 打开（例如 <code>npx serve T04</code>）。</p>
+      </header>
+
+      <section class="card">
+        <div class="toolbar">
+          <button data-view="combined" class="is-active">结合视图</button>
+          <button data-view="radar">仅雷达图</button>
+          <button data-view="horizon">仅分布（地平线图）</button>
+        </div>
+        <svg id="chart" role="img" aria-label="增强雷达图"></svg>
+      </section>
+
+      <section class="card" id="stats"></section>
+    </div>
+
+    <script>
+      // 开发页：先用 fetch 读 CSV，再交给 app.js
+      fetch('./data/DataSet.csv')
+        .then((res) => res.text())
+        .then((text) => {
+          window.__DATASET_CSV__ = text;
+          return import('./app.js');
+        })
+        .catch((error) => {
+          document.querySelector('#stats').innerHTML =
+            '<p class="error">读取数据失败：' + error.message + '（请确认是通过 http 打开，而不是 file://）</p>';
+        });
+    </script>
+  </body>
+</html>

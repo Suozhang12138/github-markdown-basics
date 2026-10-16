@@ -1,0 +1,17 @@
+# 依赖
+# 本项目零依赖（src/build.mjs 只用 Node 内置模块），正常不会出现这些目录；
+# 保留规则是为了避免后续引入打包工具时把依赖提交进仓库。
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 日志与临时文件
+*.log
+*.tmp

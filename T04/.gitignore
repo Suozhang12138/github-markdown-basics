@@ -1,23 +1,26 @@
 # 依赖
-node_modules
+# 本项目零依赖（src/build.mjs 只用 Node 内置模块），正常不会出现 node_modules；
+# 保留规则是为了避免后续引入打包工具时把依赖提交进仓库。
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
 
-# 构建产物：本项目 outDir = build，而 build/ 是交付物，必须入库
-# —— 千万不要在这里加 build 规则，否则验收者 clone 后看不到产物
+# 构建产物：本项目的 build/ 是交付物，必须入库，所以这里不忽略 build/
 dist
 dist-ssr
 
-# 环境变量
+# 渲染自检（src/check-render.mjs）产生的临时目录与中间产物
+.render-check/
+shot-*.png
+
+# 环境变量与日志
 .env*
 *.local
-
-# 日志
-logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
 # 编辑器与系统文件
 .vscode/*
@@ -26,7 +29,4 @@ lerna-debug.log*
 .DS_Store
 Thumbs.db
 *.suo
-*.ntvs*
-*.njsproj
-*.sln
 *.sw?
